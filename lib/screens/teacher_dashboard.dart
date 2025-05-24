@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
-
+import '../services/auth_service.dart';
+import 'login_screen.dart';
+import '../services/user_service.dart';
+///
 class TeacherDashboard extends StatefulWidget {
-  final String teacherId;
+  final String? teacherId;  // Hacerlo opcional
 
   const TeacherDashboard({
     Key? key,
-    required this.teacherId,
+    this.teacherId,  // Ahora es opcional
   }) : super(key: key);
 
   @override
@@ -16,6 +19,9 @@ class TeacherDashboard extends StatefulWidget {
 
 class _TeacherDashboardState extends State<TeacherDashboard> {
   final DataService _dataService = DataService();
+  final UserService _userService = UserService();
+  final AuthService _authService = AuthService();
+  
   late Teacher? _teacher;
   late List<Semester> _semesters;
   late String _selectedSemesterId;
@@ -23,6 +29,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   late String _selectedCourseId;
   List<Student> _students = [];
   bool _isLoading = true;
+  Map<String, dynamic>? _userData;
 
   @override
   void initState() {
@@ -35,28 +42,59 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       _isLoading = true;
     });
 
-    await _dataService.initialize();
-    _teacher = _dataService.getTeacherById(widget.teacherId);
-    _semesters = _dataService.getSemesters();
-    
-    // Seleccionar el semestre más reciente por defecto
-    _selectedSemesterId = _semesters.isNotEmpty ? _semesters.last.id : '';
-    
-    // Obtener cursos del profesor en el semestre seleccionado
-    _teacherCourses = _dataService.getCoursesByTeacher(widget.teacherId)
-      .where((course) => course.semesterId == _selectedSemesterId)
-      .toList();
-    
-    // Seleccionar el primer curso por defecto
-    _selectedCourseId = _teacherCourses.isNotEmpty ? _teacherCourses.first.id : '';
-    
-    // Cargar estudiantes
-    _loadStudents();
+    try {
+      // Intentar cargar datos del usuario autenticado
+      _userData = await _userService.getProfesorProfile();
+      
+      await _dataService.initialize();
+      
+      // Crear un Teacher con los datos del API
+      if (_userData != null) {
+        _teacher = Teacher(
+          id: _userData!['usuario_id'].toString(),
+          name: "${_userData!['nombre']} ${_userData!['apellido']}",
+          email: _userData!['email'],
+          // Otros campos según sea necesario
+        );
+      } else {
+        // Fallback a datos de prueba
+        _teacher = _dataService.getTeacherById(widget.teacherId ?? '1');
+      }
+      
+      _semesters = _dataService.getSemesters();
+      _selectedSemesterId = _semesters.isNotEmpty ? _semesters.last.id : '';
+      
+      // Usar el ID del profesor para cargar cursos
+      String teacherId = _teacher?.id ?? '1';
+      _teacherCourses = _dataService.getCoursesByTeacher(teacherId)
+        .where((course) => course.semesterId == _selectedSemesterId)
+        .toList();
+      
+      _selectedCourseId = _teacherCourses.isNotEmpty ? _teacherCourses.first.id : '';
+      
+      // Cargar estudiantes
+      _loadStudents();
+      
+    } catch (e) {
+      print('Error cargando datos: $e');
+      // Fallback a datos de prueba
+      await _dataService.initialize();
+      _teacher = _dataService.getTeacherById(widget.teacherId ?? '1');
+      _semesters = _dataService.getSemesters();
+      _selectedSemesterId = _semesters.isNotEmpty ? _semesters.last.id : '';
+      _teacherCourses = _dataService.getCoursesByTeacher(widget.teacherId ?? '1')
+        .where((course) => course.semesterId == _selectedSemesterId)
+        .toList();
+      _selectedCourseId = _teacherCourses.isNotEmpty ? _teacherCourses.first.id : '';
+      _loadStudents();
+    }
 
     setState(() {
       _isLoading = false;
     });
   }
+
+
 
   void _loadStudents() {
     if (_selectedCourseId.isEmpty) {
@@ -83,7 +121,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       _selectedSemesterId = semesterId;
       
       // Actualizar cursos del profesor en el nuevo semestre
-      _teacherCourses = _dataService.getCoursesByTeacher(widget.teacherId)
+      _teacherCourses = _dataService.getCoursesByTeacher(widget.teacherId ?? '')
         .where((course) => course.semesterId == _selectedSemesterId)
         .toList();
       
@@ -211,6 +249,20 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       appBar: AppBar(
         title: const Text('Dashboard Profesor'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await _authService.logout();
+              if (!mounted) return;
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
+            },
+            tooltip: 'Cerrar sesión',
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _loadData,
@@ -472,3 +524,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     return '${date.day}/${date.month}/${date.year}';
   }
 }
+///
+
+

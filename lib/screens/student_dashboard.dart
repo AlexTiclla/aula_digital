@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
+import '../services/user_service.dart';
+import '../services/auth_service.dart';
 import '../widgets/performance_chart.dart';
 import '../widgets/course_grades_card.dart';
+import 'login_screen.dart';
 
 class StudentDashboard extends StatefulWidget {
-  final String studentId;
+  final String? studentId;
 
   const StudentDashboard({
     Key? key,
-    required this.studentId,
+    this.studentId,
   }) : super(key: key);
 
   @override
@@ -18,10 +21,14 @@ class StudentDashboard extends StatefulWidget {
 
 class _StudentDashboardState extends State<StudentDashboard> {
   final DataService _dataService = DataService();
+  final UserService _userService = UserService();
+  final AuthService _authService = AuthService();
+  
   late Student? _student;
   late List<Semester> _semesters;
   late String _selectedSemesterId;
   bool _isLoading = true;
+  Map<String, dynamic>? _userData;
 
   @override
   void initState() {
@@ -34,12 +41,55 @@ class _StudentDashboardState extends State<StudentDashboard> {
       _isLoading = true;
     });
 
-    await _dataService.initialize();
-    _student = _dataService.getStudentById(widget.studentId);
-    _semesters = _dataService.getSemesters();
-    
-    // Seleccionar el semestre más reciente por defecto
-    _selectedSemesterId = _semesters.isNotEmpty ? _semesters.last.id : '';
+    try {
+      // Intentar cargar datos del usuario autenticado
+      _userData = await _userService.getEstudianteProfile();
+      
+      await _dataService.initialize();
+      
+      // Crear un Student con los datos del API
+      if (_userData != null) {
+        _student = Student(
+          id: _userData!['usuario_id'].toString(),
+          name: "${_userData!['nombre']} ${_userData!['apellido']}",
+          email: _userData!['email'],
+          // Otros campos según sea necesario
+        );
+      } else {
+        // Fallback a datos de prueba
+        _student = _dataService.getStudentById(widget.studentId ?? '1');
+      }
+      
+      _semesters = _dataService.getSemesters();
+      _selectedSemesterId = _semesters.isNotEmpty ? _semesters.last.id : '';
+      
+    } catch (e) {
+      print('Error cargando datos: $e');
+      
+      // Intentar obtener el ID de usuario de todos modos para mostrar un mensaje personalizado
+      final userId = await _authService.getUserId();
+      final userRole = await _authService.getUserRole();
+      
+      // Mostrar diálogo de error solo si estamos montados
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No se pudo cargar la información del estudiante. Es posible que necesites completar tu perfil.'),
+            duration: Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'OK',
+              onPressed: () {},
+            ),
+          ),
+        );
+      }
+      
+      // Fallback a datos de prueba
+      await _dataService.initialize();
+      _student = _dataService.getStudentById(widget.studentId ?? '1');
+      _semesters = _dataService.getSemesters();
+      _selectedSemesterId = _semesters.isNotEmpty ? _semesters.last.id : '';
+    }
 
     setState(() {
       _isLoading = false;
@@ -87,6 +137,20 @@ class _StudentDashboardState extends State<StudentDashboard> {
       appBar: AppBar(
         title: const Text('Dashboard Estudiante'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await _authService.logout();
+              if (!mounted) return;
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
+            },
+            tooltip: 'Cerrar sesión',
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _loadData,
