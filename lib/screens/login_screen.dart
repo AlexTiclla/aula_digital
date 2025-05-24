@@ -1,7 +1,9 @@
+// lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
-import '../services/data_service.dart';
+import '../services/auth_service.dart';
 import 'student_dashboard.dart';
 import 'teacher_dashboard.dart';
+import 'register_screen.dart';  // Crearemos esta pantalla después
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -17,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
   bool _isStudent = true;
+  final _authService = AuthService();
 
   @override
   void dispose() {
@@ -25,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // En lib/screens/login_screen.dart, modificar la función _login()
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -35,49 +39,46 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null;
     });
 
-    // Simulación de inicio de sesión
-    await Future.delayed(const Duration(seconds: 1));
-
-    final dataService = DataService();
-    await dataService.initialize();
-
     try {
-      if (_isStudent) {
-        final students = dataService.getStudents();
-        final student = students.firstWhere(
-          (s) => s.email.toLowerCase() == _emailController.text.toLowerCase(),
-          orElse: () => throw Exception('Estudiante no encontrado'),
-        );
-
-        // En una aplicación real, verificaríamos la contraseña aquí
-        // Por ahora, simplemente redirigimos al dashboard del estudiante
-        if (!mounted) return;
+      final userData = await _authService.login(
+        _emailController.text,
+        _passwordController.text,
+      );
+      
+      if (!mounted) return;
+      
+      // Verificar el rol del usuario
+      final userRole = userData['rol'];
+      
+      // Si es estudiante pero seleccionó profesor o viceversa
+      if ((_isStudent && userRole != 'estudiante') || 
+          (!_isStudent && userRole != 'profesor')) {
+        setState(() {
+          _errorMessage = 'Tipo de usuario incorrecto. Por favor selecciona el rol correcto.';
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      // Navegar al dashboard correspondiente
+      if (userRole == 'estudiante') {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => StudentDashboard(studentId: student.id),
+            builder: (context) => StudentDashboard(),  // Sin pasar ID
           ),
         );
-      } else {
-        final teachers = dataService.getTeachers();
-        final teacher = teachers.firstWhere(
-          (t) => t.email.toLowerCase() == _emailController.text.toLowerCase(),
-          orElse: () => throw Exception('Profesor no encontrado'),
-        );
-
-        // En una aplicación real, verificaríamos la contraseña aquí
-        // Por ahora, simplemente redirigimos al dashboard del profesor
-        if (!mounted) return;
+      } else if (userRole == 'profesor') {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => TeacherDashboard(teacherId: teacher.id),
+            builder: (context) => TeacherDashboard(),  // Sin pasar ID
           ),
         );
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Usuario no encontrado o contraseña incorrecta';
+        _errorMessage = e.toString();
       });
     } finally {
       if (mounted) {
@@ -86,6 +87,15 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     }
+  }
+
+  void _goToRegister() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RegisterScreen(),
+      ),
+    );
   }
 
   @override
@@ -98,7 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Logo o título
+              // Logo o título (sin cambios)
               Icon(
                 Icons.school,
                 size: 80,
@@ -121,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Selector de tipo de usuario
+              // Selector de tipo de usuario (sin cambios)
               Card(
                 elevation: 4,
                 child: Padding(
@@ -151,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Formulario de inicio de sesión
+                      // Formulario de inicio de sesión (sin cambios)
                       Form(
                         key: _formKey,
                         child: Column(
@@ -213,24 +223,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                     )
                                   : const Text('Iniciar Sesión'),
                             ),
+                            
+                            // Botón de registro (solo para estudiantes)
+                            if (_isStudent) ...[
+                              const SizedBox(height: 16),
+                              TextButton(
+                                onPressed: _goToRegister,
+                                child: const Text('¿No tienes cuenta? Regístrate'),
+                              ),
+                            ],
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Información de ayuda
-                      const Text(
-                        'Usuarios de prueba:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Estudiante: carlos.rodriguez@universidad.edu\nProfesor: juan.perez@universidad.edu',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Cualquier contraseña funcionará para esta demostración',
-                        style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
                       ),
                     ],
                   ),
