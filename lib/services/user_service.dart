@@ -17,7 +17,7 @@ class UserService {
     }
     
     final response = await http.get(
-      Uri.parse('$baseUrl/estudiantes/$userId'),
+      Uri.parse('$baseUrl/usuarios/$userId'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',

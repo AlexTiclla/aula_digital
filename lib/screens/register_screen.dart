@@ -42,6 +42,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
+      // Primero registramos al usuario
       await _authService.register(
         _emailController.text,
         _passwordController.text,
@@ -50,16 +51,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       
       if (!mounted) return;
-      
-      // Mostrar mensaje de éxito y volver a la pantalla de login
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registro exitoso. Ahora puedes iniciar sesión.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
-      Navigator.pop(context);
+
+      // Intentamos hacer login automático
+      try {
+        await _authService.login(
+          _emailController.text,
+          _passwordController.text,
+        );
+        
+        // Mostrar mensaje de éxito
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registro exitoso. Bienvenido a tu dashboard.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Redirigir al dashboard del estudiante
+        Navigator.pushReplacementNamed(context, '/student_dashboard');
+      } catch (loginError) {
+        // Si el login automático falla, mostramos mensaje y volvemos al login
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registro exitoso. Por favor inicia sesión.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        Navigator.pop(context);
+      }
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();

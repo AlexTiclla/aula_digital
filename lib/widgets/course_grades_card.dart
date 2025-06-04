@@ -51,13 +51,11 @@ class CourseGradesCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (course.description.isNotEmpty) ...[
-              const SizedBox(height: 8),
+            if (course.description?.isNotEmpty == true) ...[
+              const SizedBox(height: 4),
               Text(
-                course.description,
-                style: Theme.of(context).textTheme.bodyMedium,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                course.description ?? '',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
             const SizedBox(height: 16),

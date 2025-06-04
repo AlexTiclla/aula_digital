@@ -13,6 +13,39 @@ class AuthService {
     await prefs.setString('token', token);
     await prefs.setInt('userId', userId);
     await prefs.setString('rol', rol);
+    
+    // Si el rol es estudiante, obtener y guardar el ID del estudiante
+    if (rol == 'estudiante') {
+      await _fetchAndSaveEstudianteId(userId, token);
+    }
+  }
+  
+  // Método para obtener y guardar el ID del estudiante
+  Future<void> _fetchAndSaveEstudianteId(int userId, String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:8000/api/v1/usuarios/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final estudianteId = data['id'];
+        
+        if (estudianteId != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('estudiante_id', estudianteId);
+          print('ID de estudiante guardado: $estudianteId');
+        }
+      } else {
+        print('Error al obtener ID de estudiante: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error al obtener ID de estudiante: $e');
+    }
   }
   
   // Para verificar si el usuario está autenticado
@@ -31,6 +64,12 @@ class AuthService {
   Future<int?> getUserId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt('userId');
+  }
+  
+  // Para obtener el ID del estudiante
+  Future<int?> getEstudianteId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('estudiante_id');
   }
   
   // Para cerrar sesión
