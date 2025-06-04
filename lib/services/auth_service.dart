@@ -23,8 +23,9 @@ class AuthService {
   // Método para obtener y guardar el ID del estudiante
   Future<void> _fetchAndSaveEstudianteId(int userId, String token) async {
     try {
+      // Obtener todos los estudiantes y filtrar por usuario_id
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/api/v1/usuarios/$userId'),
+        Uri.parse('http://10.0.2.2:8000/api/v1/estudiantes/'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -32,16 +33,24 @@ class AuthService {
       );
       
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final estudianteId = data['id'];
+        final List<dynamic> estudiantes = jsonDecode(response.body);
         
-        if (estudianteId != null) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setInt('estudiante_id', estudianteId);
-          print('ID de estudiante guardado: $estudianteId');
+        // Buscar el estudiante con el usuario_id correspondiente
+        for (var estudiante in estudiantes) {
+          if (estudiante['usuario_id'] == userId) {
+            final estudianteId = estudiante['id'];
+            if (estudianteId != null) {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setInt('estudiante_id', estudianteId);
+              print('ID de estudiante guardado: $estudianteId');
+              return;
+            }
+          }
         }
+        
+        print('No se encontró un estudiante con usuario_id: $userId');
       } else {
-        print('Error al obtener ID de estudiante: ${response.statusCode}');
+        print('Error al obtener estudiantes: ${response.statusCode}');
       }
     } catch (e) {
       print('Error al obtener ID de estudiante: $e');

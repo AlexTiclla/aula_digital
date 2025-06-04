@@ -10,6 +10,10 @@ import 'login_screen.dart';
 import 'my_subjects_screen.dart';
 import 'my_grades_screen.dart';
 import 'grade_history_screen.dart';
+import 'participation_screen.dart';
+import 'attendance_screen.dart';
+import 'my_teachers_screen.dart';
+import 'my_tutor_screen.dart';
 
 class StudentDashboard extends StatefulWidget {
   final String? studentId;
@@ -54,61 +58,41 @@ class _StudentDashboardState extends State<StudentDashboard> {
       // Intentar cargar datos del usuario autenticado
       _userData = await _userService.getEstudianteProfile();
       
-      // Obtener ID del estudiante directamente del perfil
+      // Obtener ID del estudiante directamente del sharedpreferences
       if (_userData != null && _userData!.containsKey('id')) {
-        _estudianteId = _userData!['id'];
-        print('ID de estudiante obtenido del perfil: $_estudianteId');
-      } else {
-        // Si no está en el perfil, intentar obtenerlo de SharedPreferences
+        // intentar obtenerlo de SharedPreferences
         _estudianteId = await _apiService.getCurrentEstudianteId();
         print('ID de estudiante obtenido de SharedPreferences: $_estudianteId');
+      } else {
+
       }
       
+      // Inicializar datos de prueba para asegurar que siempre haya algo que mostrar
+      await _dataService.initialize();
+      _semesters = _dataService.getSemesters();
+      _selectedSemesterId = _semesters.isNotEmpty ? _semesters.last.id : '';
+      
       if (_userData != null) {
-        // Cargar periodos desde la API
-        final periodosData = await _apiService.getPeriodos();
-        _semesters = periodosData.map((data) => Semester.fromMap(data)).toList();
-        
-        if (_semesters.isEmpty) {
-          // Si no hay periodos en la API, usar datos de prueba
-          await _dataService.initialize();
-          _semesters = _dataService.getSemesters();
-        }
-        
-        _selectedSemesterId = _semesters.isNotEmpty ? _semesters.last.id : '';
-        
-        // Cargar notas y materias del estudiante desde la API
+        // Cargar notas del estudiante desde la API
         if (_estudianteId != null) {
-          final periodoId = int.tryParse(_selectedSemesterId);
-          if (periodoId != null) {
-            try {
-              // Cargar materias inscritas del estudiante para este periodo
-              _courses = await _apiService.getMateriasInscritasByEstudianteAndPeriodo(_estudianteId!, periodoId);
-            } catch (e) {
-              print('Error al cargar materias inscritas: $e');
-              _courses = [];
-            }
-            
-            try {
-              // Cargar notas del estudiante para este periodo
-              _grades = await _apiService.getNotasEstudianteByPeriodo(_estudianteId!, periodoId);
-            } catch (e) {
-              print('Error al cargar notas: $e');
-              _grades = [];
-            }
-            
-            // Si no hay materias o notas en la API, usar datos de prueba
-            if (_courses.isEmpty || _grades.isEmpty) {
-              await _dataService.initialize();
-              if (_courses.isEmpty) {
-                _courses = _dataService.getCoursesBySemester(_selectedSemesterId);
-              }
-              if (_grades.isEmpty) {
-                final mockStudent = _dataService.getStudentById('1');
-                _grades = mockStudent?.grades.where((g) => g.semesterId == _selectedSemesterId).toList() ?? [];
-              }
-            }
+          try {
+            // Cargar todas las notas del estudiante (para el gráfico de rendimiento)
+            _grades = await _apiService.getNotasByEstudiante(_estudianteId!);
+            print('Notas cargadas para el gráfico: ${_grades.length}');
+          } catch (e) {
+            print('Error al cargar notas: $e');
+            _grades = [];
           }
+          
+          // Si no hay notas en la API, usar datos de prueba
+          if (_grades.isEmpty) {
+            final mockStudent = _dataService.getStudentById('1');
+            _grades = mockStudent?.grades ?? [];
+            print('Usando ${_grades.length} notas de prueba');
+          }
+          
+          // Cargar materias de prueba si es necesario
+          _courses = _dataService.getCoursesBySemester(_selectedSemesterId);
         }
         
         // Crear estudiante con los datos cargados
@@ -119,31 +103,14 @@ class _StudentDashboardState extends State<StudentDashboard> {
           grades: _grades,
         );
       } else {
-        // Fallback a datos de prueba solo si no hay datos de usuario
-        await _dataService.initialize();
+        // Fallback a datos de prueba
         _student = _dataService.getStudentById(widget.studentId ?? '1');
-        _semesters = _dataService.getSemesters();
-        _selectedSemesterId = _semesters.isNotEmpty ? _semesters.last.id : '';
         _grades = _student?.grades ?? [];
         _courses = _dataService.getCoursesBySemester(_selectedSemesterId);
       }
       
     } catch (e) {
       print('Error cargando datos: $e');
-      
-      // Mostrar diálogo de error solo si estamos montados
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('No se pudo cargar la información del estudiante: $e'),
-            duration: Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'OK',
-              onPressed: () {},
-            ),
-          ),
-        );
-      }
       
       // Fallback a datos de prueba
       await _dataService.initialize();
@@ -152,6 +119,16 @@ class _StudentDashboardState extends State<StudentDashboard> {
       _selectedSemesterId = _semesters.isNotEmpty ? _semesters.last.id : '';
       _grades = _student?.grades ?? [];
       _courses = _dataService.getCoursesBySemester(_selectedSemesterId);
+      
+      // Mostrar diálogo de error solo si estamos montados
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Usando datos de prueba: $e'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     }
 
     setState(() {
@@ -177,16 +154,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
         if (_estudianteId != null) {
           final periodoId = int.tryParse(_selectedSemesterId);
           if (periodoId != null) {
-            // Cargar materias inscritas del estudiante para este periodo
-            _courses = await _apiService.getMateriasInscritasByEstudianteAndPeriodo(_estudianteId!, periodoId);
-            
-            // Cargar notas del estudiante para este periodo
-            _grades = await _apiService.getNotasEstudianteByPeriodo(_estudianteId!, periodoId);
-            
-            // Si no hay materias o notas en la API, usar datos de prueba
-            if (_courses.isEmpty) {
-              _courses = _dataService.getCoursesBySemester(_selectedSemesterId);
-            }
+
             
             // Actualizar el estudiante con las nuevas notas
             _student = Student(
@@ -236,13 +204,13 @@ class _StudentDashboardState extends State<StudentDashboard> {
       case 3:
         return const GradeHistoryScreen();
       case 4:
-        return _buildPlaceholderScreen('Participación');
+        return const ParticipationScreen();
       case 5:
-        return _buildPlaceholderScreen('Mi Asistencia');
+        return const AttendanceScreen();
       case 6:
-        return _buildPlaceholderScreen('Mis Profesores');
+        return const MyTeachersScreen();
       case 7:
-        return _buildPlaceholderScreen('Mi Tutor');
+        return const MyTutorScreen();
       default:
         return _buildDashboardContent();
     }
@@ -344,6 +312,16 @@ class _StudentDashboardState extends State<StudentDashboard> {
                         ),
                       ],
                     ),
+                    if (_userData != null) ...[
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 12),
+                      _buildInfoRow(Icons.school, 'Estudiante', Theme.of(context).primaryColor),
+                      if (_userData!.containsKey('direccion') && _userData!['direccion'] != null && _userData!['direccion'].toString().isNotEmpty)
+                        _buildInfoRow(Icons.home, _userData!['direccion'], null),
+                      if (_userData!.containsKey('tutor_nombre') && _userData!['tutor_nombre'] != null)
+                        _buildInfoRow(Icons.person, 'Tutor: ${_userData!['tutor_nombre']}', null),
+                    ],
                   ],
                 ),
               ),
@@ -359,9 +337,21 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Historial de Rendimiento',
-                      style: Theme.of(context).textTheme.titleMedium,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Historial de Rendimiento',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        Text(
+                          'Promedio: ${currentAverage.toStringAsFixed(1)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: _getColorForAverage(currentAverage),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     SizedBox(
@@ -379,55 +369,23 @@ class _StudentDashboardState extends State<StudentDashboard> {
                       'El gráfico muestra tu rendimiento basado en las notas obtenidas a lo largo del tiempo.',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
+                    if (_grades.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Resumen de Notas',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildNotasResumen(),
+                    ],
                   ],
                 ),
               ),
             ),
             
             const SizedBox(height: 24),
-            
-            // Selector de semestre
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Notas',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                DropdownButton<String>(
-                  value: _selectedSemesterId,
-                  onChanged: _onSemesterChanged,
-                  items: _semesters.map<DropdownMenuItem<String>>((Semester semester) {
-                    return DropdownMenuItem<String>(
-                      value: semester.id,
-                      child: Text(semester.name),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Notas por curso
-            ...semesterCourses.map((course) {
-              final courseGrades = gradesByCourse[course.id] ?? [];
-              return CourseGradesCard(
-                course: course,
-                grades: courseGrades,
-              );
-            }).toList(),
-            
-            // Mensaje si no hay cursos
-            if (semesterCourses.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text('No hay cursos registrados para este bimestre.'),
-                ),
-              ),
-              
-            const SizedBox(height: 16),
             
             // Sección para futuras predicciones de IA
             Card(
@@ -479,7 +437,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard Estudiante'),
+        title: const Text("Dashboard Estudiante"),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
@@ -574,6 +532,109 @@ class _StudentDashboardState extends State<StudentDashboard> {
         Navigator.pop(context); // Cierra el drawer
         _onItemTapped(index);
       },
+    );
+  }
+
+  Color _getColorForAverage(double average) {
+    if (average >= 4.0) {
+      return Colors.green;
+    } else if (average >= 3.0) {
+      return Colors.yellow;
+    } else {
+      return Colors.red;
+    }
+  }
+
+  Widget _buildNotasResumen() {
+    // Agrupar notas por materia
+    final Map<String, List<Grade>> notasPorMateria = {};
+    for (final nota in _grades) {
+      if (!notasPorMateria.containsKey(nota.courseName)) {
+        notasPorMateria[nota.courseName] = [];
+      }
+      notasPorMateria[nota.courseName]!.add(nota);
+    }
+
+    // Calcular promedios por materia
+    final Map<String, double> promediosPorMateria = {};
+    notasPorMateria.forEach((materia, notas) {
+      final sum = notas.fold<double>(0, (sum, nota) => sum + nota.value);
+      promediosPorMateria[materia] = sum / notas.length;
+    });
+
+    // Ordenar materias por promedio (de mayor a menor)
+    final materias = promediosPorMateria.keys.toList()
+      ..sort((a, b) => promediosPorMateria[b]!.compareTo(promediosPorMateria[a]!));
+
+    // Limitar a 5 materias para no sobrecargar la UI
+    final materiasAMostrar = materias.length > 5 ? materias.sublist(0, 5) : materias;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final materia in materiasAMostrar)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    materia,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: LinearProgressIndicator(
+                    value: promediosPorMateria[materia]! / 100,
+                    backgroundColor: Colors.grey.shade200,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      _getColorForAverage(promediosPorMateria[materia]!),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  promediosPorMateria[materia]!.toStringAsFixed(1),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _getColorForAverage(promediosPorMateria[materia]!),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (materias.length > 5)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () {
+                // Navegar a la pantalla de notas completa
+                _onItemTapped(2); // Índice de la pantalla de notas
+              },
+              child: const Text('Ver todas'),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, Color? color) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: color,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ],
     );
   }
 }

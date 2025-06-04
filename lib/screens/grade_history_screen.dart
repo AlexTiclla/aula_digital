@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../services/user_service.dart';
+import '../services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 
+// Grade History esta por eliminarse
 class GradeHistoryScreen extends StatefulWidget {
   const GradeHistoryScreen({Key? key}) : super(key: key);
 
@@ -15,6 +17,7 @@ class GradeHistoryScreen extends StatefulWidget {
 class _GradeHistoryScreenState extends State<GradeHistoryScreen> {
   final ApiService _apiService = ApiService();
   final UserService _userService = UserService();
+  final AuthService _authService = AuthService();
   bool _isLoading = true;
   List<Grade> _grades = [];
   String _errorMessage = '';
@@ -36,25 +39,9 @@ class _GradeHistoryScreenState extends State<GradeHistoryScreen> {
     });
 
     try {
-      // Primero intentar obtener el ID directamente del perfil
-      int? estudianteId;
+      // Obtener el ID de estudiante directamente del AuthService
+      final estudianteId = await _authService.getEstudianteId();
       
-      try {
-        final userData = await _userService.getEstudianteProfile();
-        if (userData.containsKey('id')) {
-          estudianteId = userData['id'];
-          print('ID de estudiante obtenido del perfil: $estudianteId');
-        }
-      } catch (e) {
-        print('Error al obtener perfil: $e');
-      }
-      
-      // Si no se pudo obtener del perfil, intentar con SharedPreferences
-      if (estudianteId == null) {
-        estudianteId = await _apiService.getCurrentEstudianteId();
-        print('ID de estudiante obtenido de SharedPreferences: $estudianteId');
-      }
-
       if (estudianteId == null) {
         setState(() {
           _isLoading = false;
@@ -62,6 +49,8 @@ class _GradeHistoryScreenState extends State<GradeHistoryScreen> {
         });
         return;
       }
+      
+      print('Cargando historial de notas para estudiante ID: $estudianteId');
 
       final grades = await _apiService.getHistorialNotasEstudiante(estudianteId);
       
