@@ -8,20 +8,23 @@ class ApiService {
   // URL base de la API
   static const String _baseUrl = 'http://10.0.2.2:8000/api/v1';
   
+  // URL base pública para ser accedida por otros servicios
+  static const String baseUrl = 'http://10.0.2.2:8000';
+  
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
   ApiService._internal();
 
   // Método para obtener el token de autenticación
-  Future<String?> _getToken() async {
+  Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('token');
   }
 
   // Headers para las peticiones autenticadas
   Future<Map<String, String>> _getAuthHeaders() async {
-    final token = await _getToken();
+    final token = await getToken();
     return {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
@@ -83,22 +86,42 @@ class ApiService {
           }
         }
         
+        // Función auxiliar para convertir valor a double de manera segura
+        double parseValue(dynamic val) {
+          if (val == null) return 0.0;
+          if (val is double) return val;
+          if (val is int) return val.toDouble();
+          if (val is String) {
+            try {
+              return double.parse(val);
+            } catch (_) {
+              return 0.0;
+            }
+          }
+          return 0.0;
+        }
+        
         // Convertir a objetos Grade
         final List<Grade> notas = [];
         for (var notaData in data) {
-          final cursoMateriaId = notaData['curso_materia_id'];
-          final materiaId = cursoMateriaToMateria[cursoMateriaId];
-          final nombreMateria = materiaId != null ? materiasMap[materiaId] ?? 'Materia desconocida' : 'Materia desconocida';
-          
-          notas.add(Grade.fromMap({
-            'id': notaData['id'].toString(),
-            'courseId': cursoMateriaId.toString(),
-            'courseName': nombreMateria,
-            'value': notaData['valor'].toDouble(),
-            'date': DateTime.parse(notaData['fecha']),
-            'description': notaData['descripcion'] ?? '',
-            'semesterId': '0', // Periodo actual
-          }));
+          try {
+            final cursoMateriaId = notaData['curso_materia_id'];
+            final materiaId = cursoMateriaToMateria[cursoMateriaId];
+            final nombreMateria = materiaId != null ? materiasMap[materiaId] ?? 'Materia desconocida' : 'Materia desconocida';
+            
+            notas.add(Grade.fromMap({
+              'id': notaData['id'].toString(),
+              'courseId': cursoMateriaId.toString(),
+              'courseName': nombreMateria,
+              'value': parseValue(notaData['valor']),
+              'date': DateTime.parse(notaData['fecha']),
+              'description': notaData['descripcion'] ?? '',
+              'semesterId': '0', // Periodo actual
+            }));
+          } catch (e) {
+            print('Error al procesar nota: $e');
+            // Continuar con la siguiente nota
+          }
         }
         
         return notas;
@@ -442,7 +465,7 @@ class ApiService {
   }
 
   // 2. Obtener notas actuales del estudiante (materias activas) - OPTIMIZADO
-  Future<List<Grade>> getNotasActualesEstudiante(int estudianteId) async {
+  Future<List<Grade>> getNotasActualesEstudiante(int estudianteId) async { // usar este getNotasActualesEstudiante
     try {
       final headers = await _getAuthHeaders();
       

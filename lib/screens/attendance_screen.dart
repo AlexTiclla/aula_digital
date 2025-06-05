@@ -63,7 +63,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mi Asistencia'),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: _buildBody(),
     );

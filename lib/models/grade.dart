@@ -1,4 +1,4 @@
-class Grade {
+class Grade { // este grade es la referencia
   final String id;
   final String studentId;
   final String courseId;
@@ -49,5 +49,32 @@ class Grade {
       'comments': comments,
       'descripcion': description,
     };
+  }
+
+  factory Grade.fromJson(Map<String, dynamic> json) {
+    // Convertir valor a double de manera segura
+    double parseValue(dynamic val) {
+      if (val == null) return 0.0;
+      if (val is double) return val;
+      if (val is int) return val.toDouble();
+      if (val is String) {
+        try {
+          return double.parse(val);
+        } catch (_) {
+          return 0.0;
+        }
+      }
+      return 0.0;
+    }
+    
+    return Grade(
+      id: json['id'].toString(),
+      studentId: json['estudiante_id'].toString(),
+      courseId: json['curso_materia_id'].toString(),
+      value: parseValue(json['valor']),
+      courseName: json['descripcion'] ?? 'Sin descripción',
+      semesterId: '1', // Default value
+      date: DateTime.parse(json['fecha']),
+    );
   }
 }

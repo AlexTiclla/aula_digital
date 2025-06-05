@@ -64,7 +64,7 @@ class _MySubjectsScreenState extends State<MySubjectsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mis Materias'),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: _buildBody(),
     );

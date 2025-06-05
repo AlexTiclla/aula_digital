@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MyTutorScreen extends StatefulWidget {
   const MyTutorScreen({Key? key}) : super(key: key);
@@ -62,7 +64,7 @@ class _MyTutorScreenState extends State<MyTutorScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mi Tutor'),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: _buildBody(),
     );
@@ -185,25 +187,20 @@ class TutorCard extends StatelessWidget {
                 if (tutor.lugarTrabajo != null && tutor.lugarTrabajo!.isNotEmpty)
                   _buildInfoRow(Icons.business, tutor.lugarTrabajo!),
               ]),
-            // const SizedBox(height: 24),
-            // Center(
-            //   child: ElevatedButton.icon(
-            //     onPressed: () {
-            //       // Aquí se podría implementar la funcionalidad para contactar al tutor
-            //       ScaffoldMessenger.of(context).showSnackBar(
-            //         const SnackBar(
-            //           content: Text('Función de contacto no implementada'),
-            //         ),
-            //       );
-            //     },
-            //     icon: const Icon(Icons.message),
-            //     label: const Text('Contactar'),
-            //     style: ElevatedButton.styleFrom(
-            //       backgroundColor: Colors.indigo,
-            //       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            //     ),
-            //   ),
-            // ),
+            const SizedBox(height: 24),
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _showContactOptions(context);
+                },
+                icon: const Icon(Icons.message),
+                label: const Text('Contactar'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 203, 212, 226),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -242,6 +239,120 @@ class TutorCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showContactOptions(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Contactar a tutor'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.phone, color: Colors.indigo),
+                title: const Text('Llamar'),
+                subtitle: Text(tutor.telefono),
+                onTap: () async {
+                  // Cerrar el diálogo
+                  Navigator.of(context).pop();
+                  
+                  // Lanzar la aplicación de teléfono
+                  final Uri phoneUri = Uri(scheme: 'tel', path: tutor.telefono);
+                  if (await canLaunchUrl(phoneUri)) {
+                    await launchUrl(phoneUri);
+                  } else {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('No se pudo abrir la aplicación de teléfono'),
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+              if (tutor.correo != null && tutor.correo!.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.email, color: Colors.indigo),
+                  title: const Text('Enviar correo'),
+                  subtitle: Text(tutor.correo!),
+                  onTap: () async {
+                    // Cerrar el diálogo
+                    Navigator.of(context).pop();
+                    
+                    // Lanzar la aplicación de correo
+                    final Uri emailUri = Uri(
+                      scheme: 'mailto',
+                      path: tutor.correo,
+                      queryParameters: {
+                        'subject': 'Contacto desde Aula Digital'
+                      }
+                    );
+                    
+                    if (await canLaunchUrl(emailUri)) {
+                      await launchUrl(emailUri);
+                    } else {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('No se pudo abrir la aplicación de correo'),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                ),
+              const SizedBox(height: 8),
+              const Divider(),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.content_copy, color: Colors.indigo),
+                title: const Text('Copiar número de teléfono'),
+                onTap: () {
+                  // Cerrar el diálogo
+                  Navigator.of(context).pop();
+                  
+                  // Copiar al portapapeles
+                  Clipboard.setData(ClipboardData(text: tutor.telefono));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Número copiado al portapapeles'),
+                    ),
+                  );
+                },
+              ),
+              if (tutor.correo != null && tutor.correo!.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.content_copy, color: Colors.indigo),
+                  title: const Text('Copiar correo electrónico'),
+                  onTap: () {
+                    // Cerrar el diálogo
+                    Navigator.of(context).pop();
+                    
+                    // Copiar al portapapeles
+                    Clipboard.setData(ClipboardData(text: tutor.correo!));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Correo copiado al portapapeles'),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+          ],
+        );
+      },
     );
   }
 } 

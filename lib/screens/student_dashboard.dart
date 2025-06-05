@@ -5,7 +5,7 @@ import '../services/user_service.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import '../widgets/performance_chart.dart';
-import '../widgets/course_grades_card.dart';
+// import '../widgets/course_grades_card.dart';
 import 'login_screen.dart';
 import 'my_subjects_screen.dart';
 import 'my_grades_screen.dart';
@@ -14,6 +14,7 @@ import 'participation_screen.dart';
 import 'attendance_screen.dart';
 import 'my_teachers_screen.dart';
 import 'my_tutor_screen.dart';
+import 'prediction_screen.dart';
 
 class StudentDashboard extends StatefulWidget {
   final String? studentId;
@@ -77,7 +78,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
         if (_estudianteId != null) {
           try {
             // Cargar todas las notas del estudiante (para el gráfico de rendimiento)
-            _grades = await _apiService.getNotasByEstudiante(_estudianteId!);
+            _grades = await _apiService.getNotasActualesEstudiante(_estudianteId!);
             print('Notas cargadas para el gráfico: ${_grades.length}');
           } catch (e) {
             print('Error al cargar notas: $e');
@@ -224,7 +225,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
           Icon(
             Icons.construction,
             size: 80,
-            color: Theme.of(context).primaryColor,
+            color: Theme.of(context).primaryColor, // puede ser el color
           ),
           SizedBox(height: 16),
           Text(
@@ -387,7 +388,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
             
             const SizedBox(height: 24),
             
-            // Sección para futuras predicciones de IA
+            // Sección para predicciones de IA (ACTUALIZADA)
             Card(
               elevation: 3,
               child: Padding(
@@ -398,21 +399,40 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     Row(
                       children: [
                         Icon(
-                          Icons.lightbulb_outline,
+                          Icons.psychology,
                           color: Theme.of(context).primaryColor,
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Predicciones de IA',
+                          'Análisis de IA',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     const Text(
-                      'Próximamente: Predicciones de notas basadas en tu rendimiento histórico y recomendaciones personalizadas para mejorar tu desempeño académico.',
+                      'Descubre predicciones personalizadas sobre tu rendimiento académico basadas en tu historial de notas, asistencia y participación en clase.',
                       style: TextStyle(
-                        fontStyle: FontStyle.italic,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PredictionScreen(
+                              estudianteId: _estudianteId,
+                              materiaName: 'Rendimiento General',
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.insights),
+                      label: const Text('Ver Predicciones'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 45),
                       ),
                     ),
                   ],

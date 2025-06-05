@@ -9,6 +9,7 @@ export 'course.dart';
 export 'subject.dart';
 export 'profesor.dart';
 export 'tutor.dart';
+export 'prediction.dart';
 
 // Añadir la clase HistoricalGradeData para representar los datos históricos de notas
 class HistoricalGradeData {
@@ -133,5 +134,47 @@ class Asistencia {
       default:
         return Icons.help;
     }
+  }
+}
+
+// Modelo simplificado para usar con la API de predicciones
+class Participation {
+  final String id;
+  final DateTime date;
+  final String comment;
+
+  Participation({
+    required this.id,
+    required this.date,
+    required this.comment,
+  });
+
+  factory Participation.fromJson(Map<String, dynamic> json) {
+    return Participation(
+      id: json['id'].toString(),
+      date: DateTime.parse(json['fecha']),
+      comment: json['participacion_clase'] ?? json['observacion'] ?? '',
+    );
+  }
+}
+
+// Modelo simplificado para usar con la API de predicciones
+class Attendance {
+  final String id;
+  final DateTime date;
+  final bool present;
+
+  Attendance({
+    required this.id,
+    required this.date,
+    required this.present,
+  });
+
+  factory Attendance.fromJson(Map<String, dynamic> json) {
+    return Attendance(
+      id: json['id'].toString(),
+      date: DateTime.parse(json['fecha']),
+      present: json['valor'] is bool ? json['valor'] : (json['valor'] == 'true' || json['valor'] == '1' || json['valor'] == 1),
+    );
   }
 }

@@ -62,7 +62,7 @@ class _MyTeachersScreenState extends State<MyTeachersScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mis Profesores'),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: _buildBody(),
     );

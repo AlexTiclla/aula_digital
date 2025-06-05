@@ -63,7 +63,8 @@ class _ParticipationScreenState extends State<ParticipationScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mis Participaciones'),
-        backgroundColor: Colors.indigo,
+        backgroundColor:Theme.of(context).colorScheme.inversePrimary,
+
       ),
       body: _buildBody(),
     );

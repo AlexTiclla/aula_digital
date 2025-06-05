@@ -79,7 +79,7 @@ class _MyGradesScreenState extends State<MyGradesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mis Notas'),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: _buildBody(),
     );
