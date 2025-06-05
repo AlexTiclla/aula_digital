@@ -145,12 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             value: true,
                             label: Text('Estudiante'),
                             icon: Icon(Icons.person),
-                          ),
-                          ButtonSegment<bool>(
-                            value: false,
-                            label: Text('Profesor'),
-                            icon: Icon(Icons.school),
-                          ),
+                          )
                         ],
                         selected: {_isStudent},
                         onSelectionChanged: (Set<bool> newSelection) {

@@ -3,16 +3,20 @@ class Semester {
   final String name;
   final DateTime startDate;
   final DateTime endDate;
+  final bool isActive;
+  final String? description;
   
   Semester({
     required this.id,
     required this.name,
     required this.startDate,
     required this.endDate,
+    this.isActive = true,
+    this.description,
   });
   
-  // Verificar si un semestre está activo
-  bool isActive() {
+  // Verificar si un semestre está activo actualmente
+  bool isCurrentlyActive() {
     final now = DateTime.now();
     return now.isAfter(startDate) && now.isBefore(endDate);
   }
@@ -20,10 +24,12 @@ class Semester {
   // Factory para crear desde un mapa (útil para JSON)
   factory Semester.fromMap(Map<String, dynamic> map) {
     return Semester(
-      id: map['id'],
-      name: map['name'],
-      startDate: DateTime.parse(map['startDate']),
-      endDate: DateTime.parse(map['endDate']),
+      id: map['id'].toString(),
+      name: map['descripcion'] ?? 'Bimestre ${map['bimestre']} - ${map['anio']}',
+      startDate: DateTime.parse(map['fecha_inicio']),
+      endDate: DateTime.parse(map['fecha_fin']),
+      isActive: map['is_active'] ?? true,
+      description: map['descripcion'],
     );
   }
   
@@ -32,8 +38,10 @@ class Semester {
     return {
       'id': id,
       'name': name,
-      'startDate': startDate.toIso8601String(),
-      'endDate': endDate.toIso8601String(),
+      'fecha_inicio': startDate.toIso8601String(),
+      'fecha_fin': endDate.toIso8601String(),
+      'is_active': isActive,
+      'descripcion': description,
     };
   }
 }
