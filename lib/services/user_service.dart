@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 
 class UserService {
-  static const String baseUrl = 'http://10.0.2.2:8000/api/v1';
+  static const String baseUrl = 'https://backend-aula-digital.onrender.com/api/v1';
   final AuthService _authService = AuthService();
   
   // Obtener datos del perfil de estudiante

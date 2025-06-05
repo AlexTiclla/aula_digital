@@ -6,10 +6,10 @@ import '../services/auth_service.dart';
 
 class ApiService {
   // URL base de la API
-  static const String _baseUrl = 'http://10.0.2.2:8000/api/v1';
+  static const String _baseUrl = 'https://backend-aula-digital.onrender.com/api/v1';
   
   // URL base pública para ser accedida por otros servicios
-  static const String baseUrl = 'http://10.0.2.2:8000';
+  static const String baseUrl = 'https://backend-aula-digital.onrender.com';
   
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();
