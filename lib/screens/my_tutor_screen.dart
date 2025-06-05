@@ -261,17 +261,18 @@ class TutorCard extends StatelessWidget {
                   
                   // Lanzar la aplicación de teléfono
                   final Uri phoneUri = Uri(scheme: 'tel', path: tutor.telefono);
-                  if (await canLaunchUrl(phoneUri)) {
-                    await launchUrl(phoneUri);
-                  } else {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('No se pudo abrir la aplicación de teléfono'),
-                        ),
-                      );
-                    }
-                  }
+                  await launchUrl(phoneUri);
+                  // if (await canLaunchUrl(phoneUri)) {
+                    
+                  // } else {
+                  //   if (context.mounted) {
+                  //     ScaffoldMessenger.of(context).showSnackBar(
+                  //       const SnackBar(
+                  //         content: Text('No se pudo abrir la aplicación de teléfono'),
+                  //       ),
+                  //     );
+                  //   }
+                  // }
                 },
               ),
               if (tutor.correo != null && tutor.correo!.isNotEmpty)
@@ -291,18 +292,18 @@ class TutorCard extends StatelessWidget {
                         'subject': 'Contacto desde Aula Digital'
                       }
                     );
-                    
-                    if (await canLaunchUrl(emailUri)) {
-                      await launchUrl(emailUri);
-                    } else {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('No se pudo abrir la aplicación de correo'),
-                          ),
-                        );
-                      }
-                    }
+                    await launchUrl(emailUri);
+                    // if (await canLaunchUrl(emailUri)) {
+
+                    // } else {
+                    //   if (context.mounted) {
+                    //     ScaffoldMessenger.of(context).showSnackBar(
+                    //       const SnackBar(
+                    //         content: Text('No se pudo abrir la aplicación de correo'),
+                    //       ),
+                    //     );
+                    //   }
+                    // }
                   },
                 ),
               const SizedBox(height: 8),

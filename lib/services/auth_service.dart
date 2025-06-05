@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   // Cambia esta URL por la de tu servidor
-  static const String baseUrl = 'http://10.0.2.2:8000/api/v1/auth';
+  static const String baseUrl = 'https://backend-aula-digital.onrender.com/api/v1/auth';
   
   // Para almacenar el token JWT
   Future<void> _saveToken(String token, int userId, String rol) async {
@@ -25,7 +25,7 @@ class AuthService {
     try {
       // Obtener todos los estudiantes y filtrar por usuario_id
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/api/v1/estudiantes/'),
+        Uri.parse('https://backend-aula-digital.onrender.com/api/v1/estudiantes/'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
